@@ -585,7 +585,13 @@ function do_story_text_updates(action) {
 			}
 		} else {
 			chunk_element = document.createElement("span");
-			chunk_element.innerText = action.action['Selected Text'];
+			//if the chunk contains an image, send it to the image renderer. otherwise, render normally
+			let selected_txt = action.action['Selected Text'];
+			if (chunk_contains_images(selected_txt)) {
+				chunk_element.innerHTML = render_image_html(selected_txt);
+			} else {
+				chunk_element.innerText = selected_txt;
+			}			
 			item.append(chunk_element);
 		}
 		item.original_text = action.action['Selected Text'];
@@ -594,6 +600,51 @@ function do_story_text_updates(action) {
 		item.classList.add("single_pulse");
 	}
 }
+
+
+//Kobold Lite style implementation of rendering for embedded inline images
+//nicely encapsulated in a single function so it's easy to disable or reuse if needed
+function chunk_contains_images(chunk_text)
+{
+	return (/\[<\|d\|.+?\|d\|>\]/.test(chunk_text));
+}
+function render_image_html(chunk_text_with_image) 
+{
+	var dim = 200; //image dimensions	
+	let imgstyle = "float: right; position: relative; padding: 4px; border-radius: 6%;";
+
+	//since we are not using innerText, we must escape the HTML in the chunk to render it safely
+	function escapeHtml(unsafe)
+	{
+		return unsafe
+			.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+	}
+	function unescapeHtml(input) {
+		return input
+			.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+			.replace(/&quot;/g, "\"").replace(/&#039;/g, "\'");
+	}
+	//we will escape everything first, 
+	chunk_text_with_image = escapeHtml(chunk_text_with_image);
+	//then unescape images only so we can parse them properly
+	chunk_text_with_image = chunk_text_with_image.replace(/\[&lt;\|d\|.+?\|d\|&gt;\]/g, function (m) 
+	{
+		return unescapeHtml(m);
+	});
+	//lastly we convert the images into renderable HTML
+	chunk_text_with_image = chunk_text_with_image.replace(/\[<\|d\|.+?\|d\|>\]/g, function (m) 
+	{
+		// m here means the whole matched string				
+		let inner = m.substring(5, m.length - 5);
+		inner = `<div contenteditable="false"><img src="` + inner + `" width=` + dim + ` height=` + dim + ` style="`+imgstyle+`"></div>`;
+		return inner;
+	});
+
+	return chunk_text_with_image;
+}
+/// End Inline Image implementation ///
+
 
 function do_prompt(data) {
 	let full_text = "";
