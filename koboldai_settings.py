@@ -872,6 +872,9 @@ class story_settings(settings):
         self.recentrngm  = None   # If a new random game was recently generated without Submitting after, this is the memory used (as a string), otherwise this is None
         self.useprompt   = False   # Whether to send the full prompt with every submit action
         self.chatmode    = False
+        self.instructmode = False
+        self.instructstart = "### Instruction:"
+        self.instructend = "### Response:"
         self.chatname    = "You"
         self.botname    = "Bot"
         self.stop_sequence = []     #use for configuring stop sequences
@@ -1106,13 +1109,20 @@ class story_settings(settings):
                     self.adventure = False
                     self.chatmode = False
                     self.actionmode = 0
+                    self.instructmode = False
                 elif value == 1:
                     self.adventure = True
                     self.chatmode = False
+                    self.instructmode = False
                 elif value == 2:
                     self.adventure = False
                     self.chatmode = True
                     self.actionmode = 0
+                    self.instructmode = False
+                elif value == 3:
+                    self.adventure = False
+                    self.chatmode = False
+                    self.instructmode = True
             elif name == 'adventure' and value == True:
                 self.chatmode = False
                 self.storymode = 1

@@ -1108,6 +1108,8 @@ def loadmodelsettings():
         koboldai_vars.adventure = js["adventure"]
     if("chatmode" in js):
         koboldai_vars.chatmode = js["chatmode"]
+    if("instructmode" in js):
+        koboldai_vars.instructmode = js["instructmode"]
     if("dynamicscan" in js):
         koboldai_vars.dynamicscan = js["dynamicscan"]
     if("formatoptns" in js):
@@ -1209,6 +1211,12 @@ def processsettings(js):
         koboldai_vars.chatname = js["chatname"]
     if("botname" in js):
         koboldai_vars.botname = js["botname"]
+    if("instructmode" in js):
+        koboldai_vars.instructmode = js["instructmode"]
+    if("instructstart" in js):
+        koboldai_vars.instructstart = js["instructstart"]
+    if("instructend" in js):
+        koboldai_vars.instructend = js["instructend"]
     if("dynamicscan" in js):
         koboldai_vars.dynamicscan = js["dynamicscan"]
     if("nopromptgen" in js):
@@ -2237,6 +2245,7 @@ def lua_has_setting(setting):
         "setuseprompt",
         "setadventure",
         "setchatmode",
+        "setinstructmode",
         "setdynamicscan",
         "setnopromptgen",
         "autosave",
@@ -2258,6 +2267,9 @@ def lua_has_setting(setting):
         "chatmode",
         "chatname",
         "botname",
+        "instructmode",
+        "instructstart",
+        "instructend",
         "adventure",
         "dynamicscan",
         "nopromptgen",
@@ -2296,6 +2308,7 @@ def lua_get_setting(setting):
     if(setting in ("setuseprompt", "useprompt")): return koboldai_vars.useprompt
     if(setting in ("setadventure", "adventure")): return koboldai_vars.adventure
     if(setting in ("setchatmode", "chatmode")): return koboldai_vars.chatmode
+    if(setting in ("setinstructmode", "instructmode")): return koboldai_vars.instructmode
     if(setting in ("setdynamicscan", "dynamicscan")): return koboldai_vars.dynamicscan
     if(setting in ("setnopromptgen", "nopromptgen")): return koboldai_vars.nopromptgen
     if(setting in ("autosave", "autosave")): return koboldai_vars.autosave
@@ -2338,6 +2351,7 @@ def lua_set_setting(setting, v):
     if(setting in ("autosave", "noautosave")): koboldai_vars.autosave = v
     if(setting in ("setrngpersist", "rngpersist")): koboldai_vars.rngpersist = v
     if(setting in ("setchatmode", "chatmode")): koboldai_vars.chatmode = v
+    if(setting in ("setinstructmode", "instructmode")): koboldai_vars.instructmode = v
     if(setting in ("frmttriminc", "triminc")): koboldai_vars.frmttriminc = v
     if(setting in ("frmtrmblln", "rmblln")): koboldai_vars.frmttrmblln = v
     if(setting in ("frmtrmspch", "rmspch")): koboldai_vars.frmttrmspch = v
@@ -2647,6 +2661,14 @@ def get_message(msg):
                 settingschanged()
                 emit('from_server', {'cmd': 'setchatname', 'data': koboldai_vars.chatname}, room="UI_1")
                 emit('from_server', {'cmd': 'setbotname', 'data': koboldai_vars.botname}, room="UI_1")
+            if(koboldai_vars.instructmode):
+                if(type(msg['instructstart']) is not str):
+                    raise ValueError("Chatname must be a string")
+                koboldai_vars.instructstart = msg['instructstart']
+                koboldai_vars.instructend = msg['instructend']
+                settingschanged()
+                emit('from_server', {'cmd': 'setinstructstart', 'data': koboldai_vars.instructstart}, room="UI_1")
+                emit('from_server', {'cmd': 'setinstructend', 'data': koboldai_vars.instructend}, room="UI_1")
             koboldai_vars.recentrng = koboldai_vars.recentrngm = None
             actionsubmit(msg['data'], actionmode=msg['actionmode'])
         elif(koboldai_vars.mode == "edit"):
@@ -2668,6 +2690,14 @@ def get_message(msg):
             settingschanged()
             emit('from_server', {'cmd': 'setchatname', 'data': koboldai_vars.chatname}, room="UI_1")
             emit('from_server', {'cmd': 'setbotname', 'data': koboldai_vars.botname}, room="UI_1")
+        if(koboldai_vars.instructmode):
+                if(type(msg['instructstart']) is not str):
+                    raise ValueError("Chatname must be a string")
+                koboldai_vars.instructstart = msg['instructstart']
+                koboldai_vars.instructend = msg['instructend']
+                settingschanged()
+                emit('from_server', {'cmd': 'setinstructstart', 'data': koboldai_vars.instructstart}, room="UI_1")
+                emit('from_server', {'cmd': 'setinstructend', 'data': koboldai_vars.instructend}, room="UI_1")
         actionretry(msg['data'])
     # Back/Undo Action
     elif(msg['cmd'] == 'back'):
@@ -3049,6 +3079,7 @@ def get_message(msg):
     elif(msg['cmd'] == 'setadventure'):
         koboldai_vars.adventure = msg['data']
         koboldai_vars.chatmode = False
+        koboldai_vars.instructmode = False
         settingschanged()
         refresh_settings()
     elif(msg['cmd'] == 'autosave'):
@@ -3058,6 +3089,13 @@ def get_message(msg):
     elif(msg['cmd'] == 'setchatmode'):
         koboldai_vars.chatmode = msg['data']
         koboldai_vars.adventure = False
+        koboldai_vars.instructmode = False
+        settingschanged()
+        refresh_settings()
+    elif(msg['cmd'] == 'setinstructmode'):
+        koboldai_vars.instructmode = msg['data']
+        koboldai_vars.adventure = False
+        koboldai_vars.chatmode = False
         settingschanged()
         refresh_settings()
     elif(msg['cmd'] == 'setdynamicscan'):
@@ -3288,6 +3326,12 @@ def actionsubmit(data, actionmode=0, force_submit=False, force_prompt_gen=False,
             data = re.sub(r'\n+\Z', '', data)
             if(len(data)):
                 data = f"\n{koboldai_vars.chatname}: {data}\n{botname}"
+
+        # "Instruct" mode
+        if(koboldai_vars.instructmode and koboldai_vars.gamestarted):           
+            data = re.sub(r'\n+\Z', '', data)
+            if(len(data)):
+                data = f"{koboldai_vars.instructstart}{data}{koboldai_vars.instructend}"
         
         # If we're not continuing, store a copy of the raw input
         if(data != ""):
@@ -4119,6 +4163,7 @@ def refresh_settings():
     socketio.emit('from_server', {'cmd': 'updateuseprompt', 'data': koboldai_vars.useprompt}, broadcast=True, room="UI_1")
     socketio.emit('from_server', {'cmd': 'updateadventure', 'data': koboldai_vars.adventure}, broadcast=True, room="UI_1")
     socketio.emit('from_server', {'cmd': 'updatechatmode', 'data': koboldai_vars.chatmode}, broadcast=True, room="UI_1")
+    socketio.emit('from_server', {'cmd': 'updateinstructmode', 'data': koboldai_vars.instructmode}, broadcast=True, room="UI_1")
     socketio.emit('from_server', {'cmd': 'updatedynamicscan', 'data': koboldai_vars.dynamicscan}, broadcast=True, room="UI_1")
     socketio.emit('from_server', {'cmd': 'updateautosave', 'data': koboldai_vars.autosave}, broadcast=True, room="UI_1")
     socketio.emit('from_server', {'cmd': 'updatenopromptgen', 'data': koboldai_vars.nopromptgen}, broadcast=True, room="UI_1")

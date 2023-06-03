@@ -138,6 +138,8 @@ var adventure = false;
 // Chatmode
 var chatmode = false;
 
+var instructmode = false;
+
 var sliders_throttle = getThrottle(200);
 var submit_throttle = null;
 
@@ -1517,6 +1519,12 @@ function setchatmode(state) {
 	chatmode = state;
 	setchatnamevisibility(state);
 }
+
+function setinstructmode(state) {
+	instructmode = state;
+	setchatnamevisibility(state);
+}
+
 
 function autofocus(event) {
 	if(connected) {

@@ -377,7 +377,7 @@ gensettingstf = [
     "sub_path": "",
     "classname": "story",
     "name": "storymode",
-    'children': [{'text': 'Story', 'value': 0}, {'text':'Adventure','value':1}, {'text':'Chat', 'value':2}],
+    'children': [{'text': 'Story', 'value': 0}, {'text':'Adventure','value':1}, {'text':'Chat', 'value':2}, {'text':'Instruct', 'value':3}],
     "ui_level": 0
     },
     {
